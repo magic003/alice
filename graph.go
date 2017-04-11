@@ -37,6 +37,9 @@ func (g *graph) constructGraph() error {
 		if err := g.createDependenciesByTypes(rm, typeToProvidersMap); err != nil {
 			return err
 		}
+		if _, ok := g.g[rm.m]; !ok {
+			g.g[rm.m] = make(map[Module]bool)
+		}
 	}
 
 	return nil
