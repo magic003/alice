@@ -3,12 +3,14 @@ package alice
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
+// createGraph creates a graph of modules.
 func createGraph(modules ...Module) (*graph, error) {
 	g := &graph{
 		modules: modules,
-		g:       make(map[Module]map[Module]bool),
+		g:       make(map[*reflectedModule]map[*reflectedModule]bool),
 	}
 	if err := g.constructGraph(); err != nil {
 		return nil, err
@@ -16,15 +18,76 @@ func createGraph(modules ...Module) (*graph, error) {
 	return g, nil
 }
 
+// graph maintains the dependency relationship of the modules and gives an instantiation order.
 type graph struct {
 	modules []Module
+	rms     []*reflectedModule
 	// g is map representing the dependency graph. Modules in value depend on the key.
 	// Value is a map to avoid duplication.
-	g map[Module]map[Module]bool
+	g map[*reflectedModule]map[*reflectedModule]bool
 }
 
+// moduleSlice is a container of Module slice. The purpose is to be passed in recursive calls and update the slice.
+type moduleSlice struct {
+	modules []Module
+}
+
+// stringSlice is a container of string slice. The purpose is to be passed in recursive calls and update the slice.
+type stringSlice struct {
+	strings []string
+}
+
+// instantiationOrder returns the instantiation order of the modules. It returns error if there is cyclic dependencies.
+func (g *graph) instantiationOrder() ([]Module, error) {
+	visited := make(map[*reflectedModule]bool)
+	stack := &moduleSlice{}
+	recVisited := make(map[*reflectedModule]bool)
+	recPath := &stringSlice{}
+
+	for _, m := range g.rms {
+		if !visited[m] {
+			if err := g.dfs(m, visited, stack, recVisited, recPath); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return g.reverseSlice(stack.modules), nil
+}
+
+// dfs does a depth first search on the graph.
+func (g *graph) dfs(
+	m *reflectedModule,
+	visited map[*reflectedModule]bool,
+	stack *moduleSlice,
+	recVisited map[*reflectedModule]bool,
+	recPath *stringSlice) error {
+	recPath.strings = append(recPath.strings, m.name)
+	if recVisited[m] { // cyclic
+		return fmt.Errorf("cyclic dependencies for modules: %s", strings.Join(recPath.strings, " -> "))
+	}
+
+	recVisited[m] = true
+	for dependant := range g.g[m] {
+		if !visited[dependant] {
+			if err := g.dfs(dependant, visited, stack, recVisited, recPath); err != nil {
+				return err
+			}
+		}
+	}
+
+	visited[m] = true
+	stack.modules = append(stack.modules, m.m)
+	recVisited[m] = false
+	recPath.strings = recPath.strings[:len(recPath.strings)-1]
+
+	return nil
+}
+
+// constructGraph constructs a graph based on the dependency of the modules.
 func (g *graph) constructGraph() error {
 	rmodules, nameToProviderMap, typeToProvidersMap, err := g.computeProviders()
+	g.rms = rmodules
 	if err != nil {
 		return err
 	}
@@ -37,8 +100,8 @@ func (g *graph) constructGraph() error {
 		if err := g.createDependenciesByTypes(rm, typeToProvidersMap); err != nil {
 			return err
 		}
-		if _, ok := g.g[rm.m]; !ok {
-			g.g[rm.m] = make(map[Module]bool)
+		if _, ok := g.g[rm]; !ok {
+			g.g[rm] = make(map[*reflectedModule]bool)
 		}
 	}
 
@@ -87,7 +150,7 @@ func (g *graph) createDependenciesByNames(rm *reflectedModule, nameToProviderMap
 		if !ok {
 			return fmt.Errorf("dependency name %s.%s is not found", rm.name, depName)
 		}
-		g.addDependencyEdge(provider.m, rm.m)
+		g.addDependencyEdge(provider, rm)
 	}
 
 	return nil
@@ -117,12 +180,13 @@ func (g *graph) createDependenciesByTypes(
 			return fmt.Errorf("dependency type %s.%s is found in mutiple modules: %s",
 				rm.name, depType.Name(), names)
 		}
-		g.addDependencyEdge(providers[0].m, rm.m)
+		g.addDependencyEdge(providers[0], rm)
 	}
 
 	return nil
 }
 
+// findAssignableProviders finds the providers which provides instances could be assigned to the specified type.
 func (g *graph) findAssignableProviders(
 	rm *reflectedModule,
 	expType reflect.Type,
@@ -147,11 +211,20 @@ func (g *graph) findAssignableProviders(
 }
 
 // addDependencyEdge creates a dependency edge in the graph. dependant depends on parent.
-func (g *graph) addDependencyEdge(parent Module, dependant Module) {
+func (g *graph) addDependencyEdge(parent *reflectedModule, dependant *reflectedModule) {
 	dependants, ok := g.g[parent]
 	if !ok {
-		dependants = make(map[Module]bool)
+		dependants = make(map[*reflectedModule]bool)
 		g.g[parent] = dependants
 	}
 	dependants[dependant] = true
+}
+
+// reverseSlice reverses the slice of Modules.
+func (g *graph) reverseSlice(l []Module) []Module {
+	for i, j := 0, len(l)-1; i < j; i, j = i+1, j-1 {
+		l[i], l[j] = l[j], l[i]
+	}
+
+	return l
 }
