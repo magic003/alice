@@ -163,19 +163,14 @@ func (m *selfDependModule) D1() D1 {
 
 func TestConstructGraph(t *testing.T) {
 	var (
-		m1     = &M1{}
-		m2     = &M2{}
-		m3     = &M3{}
-		m4     = &M4{}
-		m5     = &M5{}
-		rm1, _ = reflectModule(m1)
-		rm2, _ = reflectModule(m2)
-		rm3, _ = reflectModule(m3)
-		rm4, _ = reflectModule(m4)
-		rm5, _ = reflectModule(m5)
+		rm1, _ = reflectModule(&M1{})
+		rm2, _ = reflectModule(&M2{})
+		rm3, _ = reflectModule(&M3{})
+		rm4, _ = reflectModule(&M4{})
+		rm5, _ = reflectModule(&M5{})
 	)
 
-	ms := []Module{m1, m2, m3, m4, m5}
+	ms := []*reflectedModule{rm1, rm2, rm3, rm4, rm5}
 	g, err := createGraph(ms...)
 
 	if err != nil {
@@ -184,41 +179,32 @@ func TestConstructGraph(t *testing.T) {
 	if !reflect.DeepEqual(g.modules, ms) {
 		t.Errorf("bad modules in graph: got %v, expected %v", g.modules, ms)
 	}
-	rms := []*reflectedModule{rm1, rm2, rm3, rm4, rm5}
-	if !reflect.DeepEqual(g.rms, rms) {
-		t.Errorf("bad rms in graph: got %v, expected %v", g.rms, rms)
-	}
 
 	expectedG := map[*reflectedModule]map[*reflectedModule]bool{
-		g.rms[0]: map[*reflectedModule]bool{
-			g.rms[1]: true,
-			g.rms[3]: true,
+		rm1: map[*reflectedModule]bool{
+			rm2: true,
+			rm4: true,
 		},
-		g.rms[1]: map[*reflectedModule]bool{
-			g.rms[2]: true,
+		rm2: map[*reflectedModule]bool{
+			rm3: true,
 		},
-		g.rms[3]: map[*reflectedModule]bool{
-			g.rms[1]: true,
+		rm4: map[*reflectedModule]bool{
+			rm2: true,
 		},
-		g.rms[2]: map[*reflectedModule]bool{},
-		g.rms[4]: map[*reflectedModule]bool{},
+		rm3: map[*reflectedModule]bool{},
+		rm5: map[*reflectedModule]bool{},
 	}
 	if !reflect.DeepEqual(g.g, expectedG) {
 		t.Errorf("bad g in graph: got %v, expected %v", g.g, expectedG)
 	}
 }
 
-func TestConstructGraph_InvalidModule(t *testing.T) {
-	_, err := createGraph(&invalidMethodModule1{})
-
-	if err == nil {
-		t.Error("expect error after createGraph() of invalid module")
-	}
-	t.Log(err.Error())
-}
-
 func TestConstructGraph_DuplicatedName(t *testing.T) {
-	_, err := createGraph(&M1{}, &M1Duplicated{})
+	var (
+		m1, _ = reflectModule(&M1{})
+		m2, _ = reflectModule(&M1Duplicated{})
+	)
+	_, err := createGraph(m1, m2)
 
 	if err == nil {
 		t.Error("expect error after createGraph() of modules with duplicated name")
@@ -227,7 +213,8 @@ func TestConstructGraph_DuplicatedName(t *testing.T) {
 }
 
 func TestConstructGraph_NameNotFound(t *testing.T) {
-	_, err := createGraph(&M4{})
+	m, _ := reflectModule(&M4{})
+	_, err := createGraph(m)
 
 	if err == nil {
 		t.Error("expect error after createGraph() of name not found")
@@ -236,7 +223,12 @@ func TestConstructGraph_NameNotFound(t *testing.T) {
 }
 
 func TestConstructGraph_MultipleAssignableTypes(t *testing.T) {
-	_, err := createGraph(&M3{}, &ModuleWithD5Impl1{}, &ModuleWithD5Impl2{})
+	var (
+		m1, _ = reflectModule(&M3{})
+		m2, _ = reflectModule(&ModuleWithD5Impl1{})
+		m3, _ = reflectModule(&ModuleWithD5Impl2{})
+	)
+	_, err := createGraph(m1, m2, m3)
 
 	if err == nil {
 		t.Error("expect error after createGraph() of multiple assignable types")
@@ -245,7 +237,8 @@ func TestConstructGraph_MultipleAssignableTypes(t *testing.T) {
 }
 
 func TestConstructGraph_TypeProviderNotFound(t *testing.T) {
-	_, err := createGraph(&M3{})
+	m, _ := reflectModule(&M3{})
+	_, err := createGraph(m)
 
 	if err == nil {
 		t.Error("expect error after createGraph() of no type provider found")
@@ -254,7 +247,12 @@ func TestConstructGraph_TypeProviderNotFound(t *testing.T) {
 }
 
 func TestConstructGraph_MultipleTypeProvider(t *testing.T) {
-	_, err := createGraph(&M3{}, &ModuleWithD51{}, &ModuleWithD52{})
+	var (
+		m1, _ = reflectModule(&M3{})
+		m2, _ = reflectModule(&ModuleWithD51{})
+		m3, _ = reflectModule(&ModuleWithD52{})
+	)
+	_, err := createGraph(m1, m2, m3)
 
 	if err == nil {
 		t.Error("expect error after createGraph() of multiple type provider")
@@ -264,21 +262,21 @@ func TestConstructGraph_MultipleTypeProvider(t *testing.T) {
 
 func TestInstantiationOrder(t *testing.T) {
 	var (
-		m1 = &M1{}
-		m2 = &M2{}
-		m3 = &M3{}
-		m4 = &M4{}
-		m5 = &M5{}
+		m1, _ = reflectModule(&M1{})
+		m2, _ = reflectModule(&M2{})
+		m3, _ = reflectModule(&M3{})
+		m4, _ = reflectModule(&M4{})
+		m5, _ = reflectModule(&M5{})
 	)
 
-	ms := []Module{m1, m2, m3, m4, m5}
+	ms := []*reflectedModule{m1, m2, m3, m4, m5}
 	g, err := createGraph(ms...)
 
 	if err != nil {
 		t.Errorf("unexpected error after createGraph(): %s", err.Error())
 	}
 
-	expectedOrder := []Module{m5, m1, m4, m2, m3}
+	expectedOrder := []*reflectedModule{m5, m1, m4, m2, m3}
 	order, err := g.instantiationOrder()
 	if err != nil {
 		t.Errorf("unexpected error after instantiationOrder(): %s", err.Error())
@@ -290,13 +288,13 @@ func TestInstantiationOrder(t *testing.T) {
 
 func TestInstantiationOrder_Cycle(t *testing.T) {
 	var (
-		m1 = &M1{}
-		m2 = &M2{}
-		m3 = &M3{}
-		m6 = &M6{}
+		m1, _ = reflectModule(&M1{})
+		m2, _ = reflectModule(&M2{})
+		m3, _ = reflectModule(&M3{})
+		m6, _ = reflectModule(&M6{})
 	)
 
-	ms := []Module{m1, m2, m3, m6}
+	ms := []*reflectedModule{m1, m2, m3, m6}
 	g, err := createGraph(ms...)
 
 	if err != nil {
@@ -311,7 +309,7 @@ func TestInstantiationOrder_Cycle(t *testing.T) {
 }
 
 func TestInstantiationOrder_CycleSingleModule(t *testing.T) {
-	m := &selfDependModule{}
+	m, _ := reflectModule(&selfDependModule{})
 	g, err := createGraph(m)
 
 	if err != nil {

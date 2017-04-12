@@ -7,7 +7,7 @@ import (
 )
 
 // createGraph creates a graph of modules.
-func createGraph(modules ...Module) (*graph, error) {
+func createGraph(modules ...*reflectedModule) (*graph, error) {
 	g := &graph{
 		modules: modules,
 		g:       make(map[*reflectedModule]map[*reflectedModule]bool),
@@ -20,16 +20,16 @@ func createGraph(modules ...Module) (*graph, error) {
 
 // graph maintains the dependency relationship of the modules and gives an instantiation order.
 type graph struct {
-	modules []Module
-	rms     []*reflectedModule
+	modules []*reflectedModule
 	// g is map representing the dependency graph. Modules in value depend on the key.
 	// Value is a map to avoid duplication.
 	g map[*reflectedModule]map[*reflectedModule]bool
 }
 
-// moduleSlice is a container of Module slice. The purpose is to be passed in recursive calls and update the slice.
+// moduleSlice is a container of reflected module slice.
+// The purpose is to be passed in recursive calls and update the slice.
 type moduleSlice struct {
-	modules []Module
+	modules []*reflectedModule
 }
 
 // stringSlice is a container of string slice. The purpose is to be passed in recursive calls and update the slice.
@@ -38,13 +38,13 @@ type stringSlice struct {
 }
 
 // instantiationOrder returns the instantiation order of the modules. It returns error if there is cyclic dependencies.
-func (g *graph) instantiationOrder() ([]Module, error) {
+func (g *graph) instantiationOrder() ([]*reflectedModule, error) {
 	visited := make(map[*reflectedModule]bool)
 	stack := &moduleSlice{}
 	recVisited := make(map[*reflectedModule]bool)
 	recPath := &stringSlice{}
 
-	for _, m := range g.rms {
+	for _, m := range g.modules {
 		if !visited[m] {
 			if err := g.dfs(m, visited, stack, recVisited, recPath); err != nil {
 				return nil, err
@@ -77,7 +77,7 @@ func (g *graph) dfs(
 	}
 
 	visited[m] = true
-	stack.modules = append(stack.modules, m.m)
+	stack.modules = append(stack.modules, m)
 	recVisited[m] = false
 	recPath.strings = recPath.strings[:len(recPath.strings)-1]
 
@@ -86,14 +86,13 @@ func (g *graph) dfs(
 
 // constructGraph constructs a graph based on the dependency of the modules.
 func (g *graph) constructGraph() error {
-	rmodules, nameToProviderMap, typeToProvidersMap, err := g.computeProviders()
-	g.rms = rmodules
+	nameToProviderMap, typeToProvidersMap, err := g.computeProviders()
 	if err != nil {
 		return err
 	}
 
 	// construct dependency graph
-	for _, rm := range rmodules {
+	for _, rm := range g.modules {
 		if err := g.createDependenciesByNames(rm, nameToProviderMap); err != nil {
 			return err
 		}
@@ -110,25 +109,17 @@ func (g *graph) constructGraph() error {
 
 // computeProviders figures out instance names and types, and the corresponding modules that provide them.
 func (g *graph) computeProviders() (
-	[]*reflectedModule,
 	map[string]*reflectedModule,
 	map[reflect.Type][]*reflectedModule,
 	error) {
 
-	var rmodules []*reflectedModule
 	nameToProviderMap := make(map[string]*reflectedModule)
 	typeToProvidersMap := make(map[reflect.Type][]*reflectedModule)
 
-	for _, m := range g.modules {
-		provider, err := reflectModule(m)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		rmodules = append(rmodules, provider)
-
+	for _, provider := range g.modules {
 		for _, name := range provider.instanceNames {
 			if existingProvider, ok := nameToProviderMap[name]; ok {
-				return nil, nil, nil,
+				return nil, nil,
 					fmt.Errorf("duplicated name %s in module %s and %s", name, existingProvider.name, provider.name)
 			}
 			nameToProviderMap[name] = provider
@@ -140,7 +131,7 @@ func (g *graph) computeProviders() (
 		}
 	}
 
-	return rmodules, nameToProviderMap, typeToProvidersMap, nil
+	return nameToProviderMap, typeToProvidersMap, nil
 }
 
 // createDependenciesByNames creates dependencies of a module using its named dependencies.
@@ -221,7 +212,7 @@ func (g *graph) addDependencyEdge(parent *reflectedModule, dependant *reflectedM
 }
 
 // reverseSlice reverses the slice of Modules.
-func (g *graph) reverseSlice(l []Module) []Module {
+func (g *graph) reverseSlice(l []*reflectedModule) []*reflectedModule {
 	for i, j := 0, len(l)-1; i < j; i, j = i+1, j-1 {
 		l[i], l[j] = l[j], l[i]
 	}
