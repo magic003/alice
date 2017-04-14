@@ -14,10 +14,25 @@ type reflectedModule struct {
 	m    Module
 	name string
 
-	instanceNames []string
-	instanceTypes []reflect.Type
-	dependNames   []string
-	dependTypes   []reflect.Type
+	instances    []*instanceMethod
+	namedDepends []*namedField
+	typedDepends []*typedField
+}
+
+type instanceMethod struct {
+	name   string
+	tp     reflect.Type
+	method reflect.Value
+}
+
+type namedField struct {
+	name  string
+	field reflect.Value
+}
+
+type typedField struct {
+	tp    reflect.Type
+	field reflect.Value
 }
 
 // reflectModule creates a reflectedModule from a Module. It returns error if the Module is not properly defined.
@@ -29,8 +44,7 @@ func reflectModule(m Module) (*reflectedModule, error) {
 
 	// get instances
 	ptrT := v.Type()
-	var instanceNames []string
-	var instanceTypes []reflect.Type
+	var instances []*instanceMethod
 	for i := 0; i < ptrT.NumMethod(); i++ {
 		method := ptrT.Method(i)
 		if method.Name == _IsModuleMethodName {
@@ -40,14 +54,17 @@ func reflectModule(m Module) (*reflectedModule, error) {
 			return nil, fmt.Errorf("method %s.%s doesn't have 0 parameter and 1 return value",
 				v.Elem().Type().Name(), method.Name)
 		}
-		instanceNames = append(instanceNames, method.Name)
-		instanceTypes = append(instanceTypes, method.Type.Out(0))
+		instances = append(instances, &instanceMethod{
+			name:   method.Name,
+			tp:     method.Type.Out(0),
+			method: v.MethodByName(method.Name),
+		})
 	}
 
 	// get dependencies
 	t := v.Elem().Type()
-	var dependNames []string
-	var dependTypes []reflect.Type
+	var namedDepends []*namedField
+	var typedDepends []*typedField
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		if field.Anonymous {
@@ -56,19 +73,24 @@ func reflectModule(m Module) (*reflectedModule, error) {
 
 		if dependName, exists := field.Tag.Lookup(_Tag); exists {
 			if dependName != "" {
-				dependNames = append(dependNames, dependName)
+				namedDepends = append(namedDepends, &namedField{
+					name:  dependName,
+					field: v.Elem().FieldByName(field.Name),
+				})
 			} else {
-				dependTypes = append(dependTypes, field.Type)
+				typedDepends = append(typedDepends, &typedField{
+					tp:    field.Type,
+					field: v.Elem().FieldByName(field.Name),
+				})
 			}
 		}
 	}
 
 	return &reflectedModule{
-		m:             m,
-		name:          t.Name(),
-		instanceNames: instanceNames,
-		instanceTypes: instanceTypes,
-		dependNames:   dependNames,
-		dependTypes:   dependTypes,
+		m:            m,
+		name:         t.Name(),
+		instances:    instances,
+		namedDepends: namedDepends,
+		typedDepends: typedDepends,
 	}, nil
 }

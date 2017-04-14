@@ -117,14 +117,15 @@ func (g *graph) computeProviders() (
 	typeToProvidersMap := make(map[reflect.Type][]*reflectedModule)
 
 	for _, provider := range g.modules {
-		for _, name := range provider.instanceNames {
+		for _, instance := range provider.instances {
+			name := instance.name
 			if existingProvider, ok := nameToProviderMap[name]; ok {
 				return nil, nil,
 					fmt.Errorf("duplicated name %s in module %s and %s", name, existingProvider.name, provider.name)
 			}
 			nameToProviderMap[name] = provider
-		}
-		for _, t := range provider.instanceTypes {
+
+			t := instance.tp
 			existingProviders, _ := typeToProvidersMap[t]
 			existingProviders = append(existingProviders, provider)
 			typeToProvidersMap[t] = existingProviders
@@ -136,7 +137,8 @@ func (g *graph) computeProviders() (
 
 // createDependenciesByNames creates dependencies of a module using its named dependencies.
 func (g *graph) createDependenciesByNames(rm *reflectedModule, nameToProviderMap map[string]*reflectedModule) error {
-	for _, depName := range rm.dependNames {
+	for _, depField := range rm.namedDepends {
+		depName := depField.name
 		provider, ok := nameToProviderMap[depName]
 		if !ok {
 			return fmt.Errorf("dependency name %s.%s is not found", rm.name, depName)
@@ -150,7 +152,8 @@ func (g *graph) createDependenciesByNames(rm *reflectedModule, nameToProviderMap
 // createDependenciesByTypes creates dependencies of a module using its typed dependencies.
 func (g *graph) createDependenciesByTypes(
 	rm *reflectedModule, typeToProvidersMap map[reflect.Type][]*reflectedModule) error {
-	for _, depType := range rm.dependTypes {
+	for _, depField := range rm.typedDepends {
+		depType := depField.tp
 		providers, ok := typeToProvidersMap[depType]
 		if !ok { // no exact type match, find assignable types
 			assignableProviders, err := g.findAssignableProviders(rm, depType, typeToProvidersMap)

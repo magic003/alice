@@ -5,39 +5,19 @@ import (
 	"testing"
 )
 
-type Dep1 interface {
-	IsDep1() bool
-}
-
-type Dep1Impl struct{}
-
-func (d *Dep1Impl) IsDep1() bool {
-	return true
-}
-
-type Dep2 interface {
-	IsDep2() bool
-}
-
-type Dep2Impl struct{}
-
-func (d *Dep2Impl) IsDep2() bool {
-	return true
-}
-
 type testModule struct {
 	BaseModule
-	dep1   Dep1 `alice:""`
-	dep2   Dep2 `alice:"Dep2"`
+	dep1   D1 `alice:""`
+	dep2   D2 `alice:"Dep2"`
 	nonDep string
 }
 
-func (m *testModule) Dep1() Dep1 {
-	return &Dep1Impl{}
+func (m *testModule) Dep1() D1 {
+	return &D1Impl{}
 }
 
-func (m *testModule) Dep2() Dep2 {
-	return &Dep2Impl{}
+func (m *testModule) Dep2() D2 {
+	return &D2Impl{}
 }
 
 type nonPointerModule struct{}
@@ -56,16 +36,16 @@ type invalidMethodModule1 struct {
 	BaseModule
 }
 
-func (m *invalidMethodModule1) Dep1(str string) Dep1 {
-	return &Dep1Impl{}
+func (m *invalidMethodModule1) Dep1(str string) D1 {
+	return &D1Impl{}
 }
 
 type invalidMethodModule2 struct {
 	BaseModule
 }
 
-func (m *invalidMethodModule2) Dep2() (Dep2, error) {
-	return &Dep2Impl{}, nil
+func (m *invalidMethodModule2) Dep2() (D2, error) {
+	return &D2Impl{}, nil
 }
 
 func TestReflectModule(t *testing.T) {
@@ -84,26 +64,43 @@ func TestReflectModule(t *testing.T) {
 		t.Errorf("bad name in reflectedModule: got %s, expected %s", rmodule.name, expectedName)
 	}
 
-	expectedInstanceNames := []string{"Dep1", "Dep2"}
-	if !reflect.DeepEqual(rmodule.instanceNames, expectedInstanceNames) {
-		t.Errorf("bad instanceNames in reflectedModule: got %v, expected %v",
-			rmodule.instanceNames, expectedInstanceNames)
+	expectedInstances := []*instanceMethod{
+		{
+			name:   "Dep1",
+			tp:     reflect.TypeOf((*D1)(nil)).Elem(),
+			method: reflect.ValueOf(m).MethodByName("Dep1"),
+		},
+		{
+			name:   "Dep2",
+			tp:     reflect.TypeOf((*D2)(nil)).Elem(),
+			method: reflect.ValueOf(m).MethodByName("Dep2"),
+		},
 	}
-	expectedInstanceTypes := []reflect.Type{reflect.TypeOf((*Dep1)(nil)).Elem(), reflect.TypeOf((*Dep2)(nil)).Elem()}
-	if !reflect.DeepEqual(rmodule.instanceTypes, expectedInstanceTypes) {
-		t.Errorf("bad instanceTypes in reflectedModule: got %v, expected %v",
-			rmodule.instanceTypes, expectedInstanceTypes)
+	if !reflect.DeepEqual(rmodule.instances, expectedInstances) {
+		t.Errorf("bad instances in reflectedModule: got %v, expected %v",
+			rmodule.instances, expectedInstances)
 	}
 
-	expectedDependNames := []string{"Dep2"}
-	if !reflect.DeepEqual(rmodule.dependNames, expectedDependNames) {
-		t.Errorf("bad dependNames in reflectedModule: got %v, expected %v",
-			rmodule.dependNames, expectedDependNames)
+	expectedNamedDepends := []*namedField{
+		{
+			name:  "Dep2",
+			field: reflect.ValueOf(m).Elem().FieldByName("dep2"),
+		},
 	}
-	expectedDependTypes := []reflect.Type{reflect.TypeOf((*Dep1)(nil)).Elem()}
-	if !reflect.DeepEqual(rmodule.dependTypes, expectedDependTypes) {
-		t.Errorf("bad dependTypes in reflectedModule: got %v, expected %v",
-			rmodule.dependTypes, expectedDependTypes)
+	if !reflect.DeepEqual(rmodule.namedDepends, expectedNamedDepends) {
+		t.Errorf("bad namedDepends in reflectedModule: got %v, expected %v",
+			rmodule.namedDepends, expectedNamedDepends)
+	}
+
+	expectedTypedDpends := []*typedField{
+		{
+			tp:    reflect.TypeOf((*D1)(nil)).Elem(),
+			field: reflect.ValueOf(m).Elem().FieldByName("dep1"),
+		},
+	}
+	if !reflect.DeepEqual(rmodule.typedDepends, expectedTypedDpends) {
+		t.Errorf("bad typedDepends in reflectedModule: got %v, expected %v",
+			rmodule.typedDepends, expectedTypedDpends)
 	}
 }
 
