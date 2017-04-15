@@ -23,6 +23,14 @@ type container struct {
 	instanceByType map[reflect.Type][]interface{}
 }
 
+func (c *container) Instance(t reflect.Type) interface{} {
+	return c.findInstanceByType(t)
+}
+
+func (c *container) InstanceByName(name string) interface{} {
+	return c.findInstanceByName(name)
+}
+
 func (c *container) populate() {
 	rms := c.reflectModules(c.modules)
 	g, err := createGraph(rms...)
