@@ -61,7 +61,7 @@ func (c *container) instantiateModule(rm *reflectedModule) {
 	}
 
 	for _, instanceMethod := range rm.instances {
-		instance := instanceMethod.method.Call([]reflect.Value{reflect.ValueOf(rm.m)})[0]
+		instance := instanceMethod.method.Call(nil)[0].Interface()
 
 		c.instanceByName[instanceMethod.name] = instance
 
