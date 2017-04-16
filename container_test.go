@@ -364,3 +364,21 @@ func TestInstanceByName_PanicOnNameNotFound(t *testing.T) {
 
 	c.InstanceByName("D3")
 }
+
+func TestCreateContainer(t *testing.T) {
+	var (
+		m1 = &M1{}
+		m2 = &M2{}
+		m3 = &M3{}
+		m4 = &M4{}
+		m5 = &M5{}
+	)
+
+	c := CreateContainer(m1, m2, m3, m4, m5)
+
+	d1 := c.InstanceByName("D1").(D1)
+	expectedD1 := &D1Impl{}
+	if !reflect.DeepEqual(d1, expectedD1) {
+		t.Errorf("bad instance after CreateContainer(): got %v, expected %v", d1, expectedD1)
+	}
+}

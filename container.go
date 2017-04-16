@@ -5,6 +5,16 @@ import (
 	"reflect"
 )
 
+// CreateContainer creates a new instance of container with specified modules. It panics if any of the module is
+// invalid. This is the only way to create a container. Most applications call it only once during bootstrap.
+func CreateContainer(modules ...Module) Container {
+	c := &container{
+		modules: modules,
+	}
+	c.populate()
+	return c
+}
+
 // Container defines the interface of an instance container. It initializes instances based on dependencies,
 // and provides APIs to retrieve instances by type or name.
 type Container interface {
