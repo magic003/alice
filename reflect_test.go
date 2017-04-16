@@ -5,18 +5,18 @@ import (
 	"testing"
 )
 
-type testModule struct {
+type reflectTestModule struct {
 	BaseModule
 	dep1   D1 `alice:""`
 	dep2   D2 `alice:"Dep2"`
 	nonDep string
 }
 
-func (m *testModule) Dep1() D1 {
+func (m *reflectTestModule) Dep1() D1 {
 	return &D1Impl{}
 }
 
-func (m *testModule) Dep2() D2 {
+func (m *reflectTestModule) Dep2() D2 {
 	return &D2Impl{}
 }
 
@@ -49,7 +49,7 @@ func (m *invalidMethodModule2) Dep2() (D2, error) {
 }
 
 func TestReflectModule(t *testing.T) {
-	m := &testModule{}
+	m := &reflectTestModule{}
 
 	rmodule, err := reflectModule(m)
 
@@ -59,7 +59,7 @@ func TestReflectModule(t *testing.T) {
 	if rmodule.m != m {
 		t.Errorf("bad m in reflectedModule: got %v, expected %v", rmodule.m, m)
 	}
-	expectedName := "testModule"
+	expectedName := "reflectTestModule"
 	if rmodule.name != expectedName {
 		t.Errorf("bad name in reflectedModule: got %s, expected %s", rmodule.name, expectedName)
 	}

@@ -153,7 +153,7 @@ func TestInstantiationOrder_Cycle(t *testing.T) {
 }
 
 func TestInstantiationOrder_CycleSingleModule(t *testing.T) {
-	m, _ := reflectModule(&selfDependModule{})
+	m, _ := reflectModule(&SelfDependModule{})
 	g, err := createGraph(m)
 
 	if err != nil {

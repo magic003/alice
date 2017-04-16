@@ -156,12 +156,12 @@ func (m *ModuleWithD5Impl2) D5_2() *D5Impl2 {
 	return &D5Impl2{}
 }
 
-type selfDependModule struct {
+type SelfDependModule struct {
 	BaseModule
 	D D1 `alice:"D1"`
 }
 
-func (m *selfDependModule) D1() D1 {
+func (m *SelfDependModule) D1() D1 {
 	return &D1Impl{}
 }
 
