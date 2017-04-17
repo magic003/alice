@@ -13,9 +13,9 @@ type Module interface {
 //
 //	type ExampleModule struct {
 //		alice.BaseModule
-//		Foo Foo `alice:""`		// associated by type
-//		Bar Bar `alice:"Bar"`	// associated by name
-//		URL string				// not associated. Provided by creating the module.
+//		Foo Foo `alice:""`      // associated by type
+//		Bar Bar `alice:"Bar"`   // associated by name
+//		URL string              // not associated. Provided by creating the module.
 //	}
 //
 //	func (m *ExampleModule) Baz() Baz {
