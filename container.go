@@ -1,3 +1,4 @@
+// Package alice provides an additive dependency injection container.
 package alice
 
 import (
