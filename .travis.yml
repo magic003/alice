@@ -2,3 +2,12 @@ language: go
 
 go:
   - 1.7.x
+
+install:
+  - go get -t -v .
+
+before_script:
+  - go vet ./...
+
+script:
+  - go test -v -cover ./...
