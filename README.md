@@ -71,7 +71,7 @@ The container provides 2 ways to retrieve instances: by name and by type.
 ```go
 instanceX := container.InstanceByName("InstanceX")
 
-instanceY := container.Instance(reflect.TypeOf((Y)(nil))
+instanceY := container.Instance(reflect.TypeOf((Y)(nil)))
 ```
 
 It will panic either if no instance is found or if multiple matched types are found.
