@@ -1,6 +1,7 @@
 # Alice 
 
 [![Build Status](https://travis-ci.org/magic003/alice.png?branch=master)](https://travis-ci.org/magic003/alice)
+[![Coverage Status](https://coveralls.io/repos/github/magic003/alice/badge.svg?branch=master)](https://coveralls.io/github/magic003/alice?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/magic003/alice?style=flat)](https://goreportcard.com/report/github.com/magic003/alice)
 
 Alice is an additive dependency injection container for Golang.
