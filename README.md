@@ -1,5 +1,6 @@
 # Alice 
 
+[![Release](https://img.shields.io/github/release/magic003/alice.svg?style=flat)](https://github.com/magic003/alice/releases/latest)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/magic003/alice)
 [![Build Status](https://travis-ci.org/magic003/alice.png?branch=master)](https://travis-ci.org/magic003/alice)
 [![Coverage Status](https://coveralls.io/repos/github/magic003/alice/badge.svg?branch=master)](https://coveralls.io/github/magic003/alice?branch=master)
