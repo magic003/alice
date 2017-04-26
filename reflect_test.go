@@ -126,7 +126,7 @@ func TestReflectModule_InvalidMethod(t *testing.T) {
 
 	_, err := reflectModule(m1)
 	if err == nil {
-		t.Error("expect error after reflectModule() on module with 1 paramter method")
+		t.Error("expect error after reflectModule() on module with 1 parameter method")
 	}
 	t.Log(err.Error())
 

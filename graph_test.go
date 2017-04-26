@@ -25,18 +25,18 @@ func TestConstructGraph(t *testing.T) {
 	}
 
 	expectedG := map[*reflectedModule]map[*reflectedModule]bool{
-		rm1: map[*reflectedModule]bool{
+		rm1: {
 			rm2: true,
 			rm4: true,
 		},
-		rm2: map[*reflectedModule]bool{
+		rm2: {
 			rm3: true,
 		},
-		rm4: map[*reflectedModule]bool{
+		rm4: {
 			rm2: true,
 		},
-		rm3: map[*reflectedModule]bool{},
-		rm5: map[*reflectedModule]bool{},
+		rm3: {},
+		rm5: {},
 	}
 	if !reflect.DeepEqual(g.g, expectedG) {
 		t.Errorf("bad g in graph: got %v, expected %v", g.g, expectedG)

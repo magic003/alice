@@ -213,20 +213,20 @@ func TestPopulate(t *testing.T) {
 	}
 
 	expectedInstanceByType := map[reflect.Type][]interface{}{
-		reflect.TypeOf((*D1)(nil)).Elem(): []interface{}{
+		reflect.TypeOf((*D1)(nil)).Elem(): {
 			&D1Impl{},
 			&D1Impl{},
 		},
-		reflect.TypeOf((*D2)(nil)).Elem(): []interface{}{
+		reflect.TypeOf((*D2)(nil)).Elem(): {
 			&D2Impl{},
 		},
-		reflect.TypeOf((*D5Impl)(nil)): []interface{}{
+		reflect.TypeOf((*D5Impl)(nil)): {
 			&D5Impl{},
 		},
-		reflect.TypeOf((*D3)(nil)).Elem(): []interface{}{
+		reflect.TypeOf((*D3)(nil)).Elem(): {
 			&D3Impl{},
 		},
-		reflect.TypeOf((*D4)(nil)).Elem(): []interface{}{
+		reflect.TypeOf((*D4)(nil)).Elem(): {
 			&D4Impl{},
 		},
 	}

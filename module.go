@@ -6,7 +6,7 @@ type Module interface {
 	IsModule() bool
 }
 
-// BaseModule is an implementation of Module interface. It should be embeded into each module defined in the
+// BaseModule is an implementation of Module interface. It should be embedded into each module defined in the
 // application.
 //
 // A typical module is defined as follows:
